@@ -34,7 +34,7 @@ var BrightsocketClient = function () {
 
     this.location = location;
     this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
-    this.isIdentified = false;
+    this.hasSentIdentify = false;
   }
 
   /**
@@ -50,13 +50,20 @@ var BrightsocketClient = function () {
   _createClass(BrightsocketClient, [{
     key: 'identify',
     value: function identify(userType, optionalPayload) {
-      if (!this.isIdentified) {
+
+      // If we haven't yet tried to identify, send the identify action then
+      // mark that we've identified.
+      if (!this.hasSentIdentify) {
         var proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
         proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
         this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
-        this.isIdentified = true;
+        this.hasSentIdentify = true;
+
+        // If we've already identified or tried to identify once, mark that
+        // back to false, disconnect, reconnect, then recursively call identify
+        // again, thus allowing us to hit the first condition.
       } else {
-        this.isIdentified = false;
+        this.hasSentIdentify = false;
         this.socket.disconnect();
         this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
         this.identify(userType, optionalPayload);
@@ -87,6 +94,17 @@ var BrightsocketClient = function () {
     key: 'send',
     value: function send(action, optionalPayload) {
       return optionalPayload ? this.socket.emit(action, optionalPayload) : this.socket.emit(action);
+    }
+
+    /**
+     * Manually disconnects the websocket, requiring re-identify.
+     */
+
+  }, {
+    key: 'disconnect',
+    value: function disconnect() {
+      this.hasSentIdentify = false;
+      this.socket.disconnect();
     }
   }]);
 

@@ -68,6 +68,14 @@ class BrightsocketClient {
     return optionalPayload ? this.socket.emit(action, optionalPayload) : this.socket.emit(action);
   }
 
+  /**
+   * Manually disconnects the websocket, requiring re-identify.
+   */
+  disconnect() {
+    this.hasSentIdentify = false;
+    this.socket.disconnect();
+  }
+
 }
 
 /**
