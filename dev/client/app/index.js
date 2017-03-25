@@ -1,3 +1,12 @@
 import brightsocket from './brightsocket-client';
 
-window.brightsocket = brightsocket;
+console.log('brightsocket exists', typeof brightsocket === 'function');
+
+const socket = brightsocket();
+
+socket.identify('USER1');
+
+socket.receive('NEEDS_REIDENTIFY', () => {
+  socket.identify('USER2');
+  socket.send('MESSAGE');
+});

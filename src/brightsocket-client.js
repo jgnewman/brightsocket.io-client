@@ -14,7 +14,9 @@ class BrightsocketClient {
    * Takes in a possible URI and instantiates the socket.io client lib.
    */
   constructor(location) {
-    this.socket = location ? io(location) : io();
+    this.location = location;
+    this.socket = this.location ? io(this.location) : io();
+    this.hasSentIdentify = false;
   }
 
   /**
@@ -26,9 +28,24 @@ class BrightsocketClient {
    * @return {undefined}
    */
   identify(userType, optionalPayload) {
-    const proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
-    proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
-    this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
+
+    // If we haven't yet tried to identify, send the identify action then
+    // mark that we've identified.
+    if (!this.hasSentIdentify) {
+      const proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
+      proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
+      this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
+      this.hasSentIdentify = true;
+
+    // If we've already identified or tried to identify once, mark that
+    // back to false, disconnect, reconnect, then recursively call identify
+    // again, thus allowing us to hit the first condition.
+    } else {
+      this.hasSentIdentify = false;
+      this.socket.disconnect();
+      this.socket = this.location ? io(this.location) : io();
+      this.identify(userType, optionalPayload);
+    }
   }
 
   /**

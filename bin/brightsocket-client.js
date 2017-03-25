@@ -32,7 +32,9 @@ var BrightsocketClient = function () {
   function BrightsocketClient(location) {
     _classCallCheck(this, BrightsocketClient);
 
-    this.socket = location ? (0, _socket2.default)(location) : (0, _socket2.default)();
+    this.location = location;
+    this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
+    this.isIdentified = false;
   }
 
   /**
@@ -48,9 +50,17 @@ var BrightsocketClient = function () {
   _createClass(BrightsocketClient, [{
     key: 'identify',
     value: function identify(userType, optionalPayload) {
-      var proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
-      proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
-      this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
+      if (!this.isIdentified) {
+        var proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
+        proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
+        this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
+        this.isIdentified = true;
+      } else {
+        this.isIdentified = false;
+        this.socket.disconnect();
+        this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
+        this.identify(userType, optionalPayload);
+      }
     }
 
     /**
