@@ -49,8 +49,8 @@ var BrightsocketClient = function () {
     key: 'identify',
     value: function identify(userType, optionalPayload) {
       var proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
-      proxyPayload["BRIGHTSOCKET_INTERNAL:USERTYPE"] = userType;
-      this.socket.emit('BRIGHTSOCKET_INTERNAL:IDENTIFY', proxyPayload);
+      proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
+      this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
     }
 
     /**
