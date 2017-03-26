@@ -35,6 +35,7 @@ var BrightsocketClient = function () {
     this.location = location;
     this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
     this.hasSentIdentify = false;
+    this.actions = [];
   }
 
   /**
@@ -42,21 +43,30 @@ var BrightsocketClient = function () {
    *
    * @param {String}       userType        - An arbitrary name for this user type.
    * @param {Serializable} optionalPayload - Any extra data to send in the identity package.
+   * @param {Function}     callback        - Runs after we've been identified.
    *
    * @return {undefined}
    */
 
 
   _createClass(BrightsocketClient, [{
-    key: 'identify',
-    value: function identify(userType, optionalPayload) {
+    key: 'connect',
+    value: function connect(userType, optionalPayload, callback) {
+      var _this = this;
+
+      // Allow the middle argument to be optional.
+      if (typeof optionalPayload === 'function') {
+        callback = optionalPayload;
+        optionalPayload = undefined;
+      }
 
       // If we haven't yet tried to identify, send the identify action then
       // mark that we've identified.
       if (!this.hasSentIdentify) {
         var proxyPayload = optionalPayload ? Object.assign({}, optionalPayload) : {};
-        proxyPayload["BRIGHTSOCKET:USERTYPE"] = userType;
+        proxyPayload["BRIGHTSOCKET:CHANNEL"] = userType;
         this.socket.emit('BRIGHTSOCKET:IDENTIFY', proxyPayload);
+        callback && this.socket.on('BRIGHTSOCKET:IDENTIFIED', callback);
         this.hasSentIdentify = true;
 
         // If we've already identified or tried to identify once, mark that
@@ -66,7 +76,10 @@ var BrightsocketClient = function () {
         this.hasSentIdentify = false;
         this.socket.disconnect();
         this.socket = this.location ? (0, _socket2.default)(this.location) : (0, _socket2.default)();
-        this.identify(userType, optionalPayload);
+        this.actions.forEach(function (actionTuple) {
+          _this.socket.on(actionTuple[0], actionTuple[1]);
+        });
+        this.connect.apply(this, arguments);
       }
     }
 
@@ -80,6 +93,7 @@ var BrightsocketClient = function () {
   }, {
     key: 'receive',
     value: function receive(action, callback) {
+      this.actions.push([action, callback]);
       return this.socket.on(action, callback);
     }
 

@@ -24,18 +24,20 @@ import brightsocket from 'brightsocket.io-client';
 var brightsocket = require('brightsocket.io-client');
 ```
 
-## 3. Launch Brightsocket and identify yourself to the server.
+## 3. Launch Brightsocket and choose a channel on the server.
 
-Brightsocket's server side expects every client side connection to identify itself by keyword. This is not any kind of secret key or encrypted information. It simply tells the server which types of actions it can expect you to send since Brightsocket APIs can be partitioned based on these keywords.
+Brightsocket's server side expects every client side connection to identify a connection channel by keyword. This is not any kind of secret key or encrypted information. It simply tells the server which types of actions it can expect you to send since Brightsocket APIs can be partitioned based on these channels.
 
 ```javascript
 const socket = brightsocket();
 // By the way, if your server socket URI isn't local, you can pass it
 // to the brightsocket function like `brightsocket(URI)`
 
-socket.identify('USER');
+socket.connect('USER', () => { ... });
 // This keyword is essentially arbitrary. It just needs to match up
-// with an identifier expected by the server.
+// with an identifier expected by the server. Once your connection
+// has been hooked into a server channel, the callback function will
+// run and you can hook up all your listeners in there.
 ```
 
 ## 4. Start sending and receiving actions.
@@ -53,7 +55,7 @@ socket.receive('USER_INFO', payload => console.log(payload));
 
 ## 5. If you need to re-identify as a different user type, just call `identify` again.
 
-Any time you call `identify`, Brightsocket will check if you've already tried to identify in the past. If you have, it will close the connection then open a new connection and fire off your new identification info. This might be useful in a case where you originally identify as an unknown user, passing in login credentials. A Brightsocket server might find your user in the database and then pass you back a token and a request to re-identify as an admin user. You could then call `identify` once more and pass back your token, thus being assigned the correct socket API on the server side. Here's an example:
+Any time you call `connect`, Brightsocket will check if you've already tried to connect in the past. If you have, it will close the connection then open a new connection and fire off your new identification info. This might be useful in a case where you originally choose a channel for unauthenticated users and pass in login credentials. A Brightsocket server might find your user in the database and then pass you back a token and a request to choose a new channel for authenticated users. You could then call `connect` once more and pass back your token, thus being assigned the correct socket API on the server side. Here's an example:
 
 **On the client side**
 
@@ -62,15 +64,21 @@ import brightsocket from 'brightsocket.io-client';
 
 const socket = brightsocket();
 
-socket.identify('UNKNOWN', {
+const credentials = {
   username: 'fake@fake.com',
   password: 'password'
-});
+};
 
-socket.receive('LOGGED_IN', payload => {
-  socket.identify(payload.userType, {
-    token: payload.token
+socket.connect('UNAUTHENTICATED', credentials, () => {
+
+  socket.receive('LOGGED_IN', payload => {
+    socket.connect(payload.userType, { token: payload.token }, () => {
+
+      // Set up some more listeners and such
+
+    });
   });
+
 });
 ```
 
@@ -94,7 +102,7 @@ app.get('/', (req, res) => {
 // When someone identifies as unknown, expect then to hand us a
 // username and password. If it's valid, make a session token and
 // let them know they're logged in.
-api.identify('UNKNOWN', (connection, identity) => {
+api.connect('UNAUTHENTICATED', (connection, identity) => {
   db.get('users', identity).then(user => {
     const token = makeToken(user);
     user.token = token;
@@ -104,7 +112,7 @@ api.identify('UNKNOWN', (connection, identity) => {
 
 // Whenever someone identifies as an admin, verify if they have
 // a valid token.
-api.identify('ADMIN', (connection, identity) => {
+api.connect('ADMIN', (connection, identity) => {
   if (verifyToken(identity.token)) {
 
     // Add a filter that forces authentication for every action on
