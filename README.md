@@ -53,7 +53,7 @@ socket.send('UPDATE_USER_EMAIL', { email: 'fake@fake.com' });
 socket.receive('USER_INFO', payload => console.log(payload));
 ```
 
-## 5. If you need to re-identify as a different user type, just call `identify` again.
+## 5. If you need to choose a new channel, just call `connect` again.
 
 Any time you call `connect`, Brightsocket will check if you've already tried to connect in the past. If you have, it will close the connection then open a new connection and fire off your new identification info. This might be useful in a case where you originally choose a channel for unauthenticated users and pass in login credentials. A Brightsocket server might find your user in the database and then pass you back a token and a request to choose a new channel for authenticated users. You could then call `connect` once more and pass back your token, thus being assigned the correct socket API on the server side. Here's an example:
 

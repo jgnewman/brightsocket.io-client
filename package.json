@@ -1,6 +1,6 @@
 {
   "name": "brightsocket.io-client",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "An abstraction over socket.io-client for quickly building websocket APIs",
   "main": "bin/brightsocket-client.js",
   "repository": {
